@@ -1,0 +1,457 @@
+<html lang="zh-CN"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语演讲语音分析器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        neutral: '#64748B',
+                        light: '#F8FAFC',
+                        dark: '#1E293B'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .shadow-soft {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            }
+            .score-bar {
+                transition: width 1s ease-in-out;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-dark min-h-screen">
+    <!-- 页面头部 -->
+    <header class="bg-white shadow-soft py-6 px-4 md:px-8">
+        <div class="container mx-auto">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-center text-dark">
+                <i class="fa fa-microphone text-primary mr-3"></i>英语演讲语音分析器
+            </h1>
+            <p class="text-neutral text-center mt-2 max-w-2xl mx-auto">
+                专业评估您的英语演讲发音、语调与表达，提供针对性改进建议
+            </p>
+        </div>
+    </header>
+
+    <!-- 主要内容区 -->
+    <main class="container mx-auto py-8 px-4 md:px-8">
+        <!-- 总分显示 -->
+        <div class="bg-white rounded-xl shadow-soft p-6 mb-8 text-center">
+            <h2 class="text-xl font-semibold text-neutral mb-4">总体评分</h2>
+            <div class="flex items-center justify-center">
+                <div class="w-36 h-36 rounded-full bg-primary/10 flex items-center justify-center relative">
+                    <span id="total-score" class="text-4xl font-bold text-primary">0</span>
+                    <span class="text-neutral absolute -bottom-6">/ 20 分</span>
+                </div>
+            </div>
+            <p id="total-comment" class="mt-6 text-neutral italic">请开始录音或上传音频进行分析</p>
+        </div>
+
+        <!-- 两个主要部分 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- 语音检测部分 -->
+            <section class="bg-white rounded-xl shadow-soft p-6 transform transition-all duration-300 hover:shadow-lg">
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mr-3">
+                        <i class="fa fa-volume-up text-primary"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold">语音检测</h2>
+                    <span class="ml-auto bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                        <span id="detection-score">0</span> / 10 分
+                    </span>
+                </div>
+
+                <!-- 录音和上传控制 -->
+                <div class="mb-8">
+                    <div class="flex flex-col sm:flex-row justify-center gap-4 mb-4">
+                        <button id="record-btn" class="flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-full shadow-md hover:bg-primary/90 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary/50">
+                            <i class="fa fa-microphone"></i>
+                            <span>开始录音</span>
+                        </button>
+                        <label for="audio-upload" class="flex items-center justify-center gap-2 px-4 py-3 bg-neutral text-white rounded-full shadow-md hover:bg-neutral/90 transition-all duration-300 cursor-pointer">
+                            <i class="fa fa-upload"></i>
+                            <span>上传录音</span>
+                            <input id="audio-upload" type="file" accept="audio/*" class="hidden">
+                        </label>
+                    </div>
+                    <div class="text-center">
+                        <p id="record-status" class="text-neutral">请选择录音或上传音频文件</p>
+                        <p id="record-time" class="text-sm text-neutral/70 mt-1">00:00</p>
+                    </div>
+                </div>
+
+                <!-- 检测指标 -->
+                <div class="space-y-5">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">发音准确性</span>
+                            <span id="accuracy-score" class="text-sm text-neutral">0/10</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="accuracy-bar" class="score-bar bg-primary h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">语速控制</span>
+                            <span id="speed-score" class="text-sm text-neutral">0/10</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="speed-bar" class="score-bar bg-primary h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">清晰度</span>
+                            <span id="clarity-score" class="text-sm text-neutral">0/10</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="clarity-bar" class="score-bar bg-primary h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 语音评价部分 -->
+            <section class="bg-white rounded-xl shadow-soft p-6 transform transition-all duration-300 hover:shadow-lg">
+                <div class="flex items-center mb-6">
+                    <div class="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center mr-3">
+                        <i class="fa fa-comment text-secondary"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold">语音评价</h2>
+                    <span class="ml-auto bg-secondary/10 text-secondary px-3 py-1 rounded-full text-sm font-medium">
+                        <span id="evaluation-score">0</span> / 10 分
+                    </span>
+                </div>
+
+                <!-- 评价指标 -->
+                <div class="space-y-5 mb-8">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">语调变化</span>
+                            <span id="intonation-score" class="text-sm text-neutral">0/10</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="intonation-bar" class="score-bar bg-secondary h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">情感表达</span>
+                            <span id="emotion-score" class="text-sm text-neutral">0/10</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="emotion-bar" class="score-bar bg-secondary h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium">停顿节奏</span>
+                            <span id="pause-score" class="text-sm text-neutral">0/10</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="pause-bar" class="score-bar bg-secondary h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 改进建议 -->
+                <div>
+                    <h3 class="text-base font-semibold mb-3 text-neutral">改进建议</h3>
+                    <div id="suggestions" class="bg-gray-50 rounded-lg p-4 text-sm text-neutral h-32 overflow-y-auto">
+                        <p class="italic text-neutral/70">完成语音分析后将显示个性化改进建议...</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 分析结果示例 -->
+        <section class="mt-10 bg-white rounded-xl shadow-soft p-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fa fa-info-circle text-accent mr-2"></i>分析指标说明
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                <div>
+                    <h3 class="font-medium text-primary mb-2">语音检测指标</h3>
+                    <ul class="space-y-1 text-neutral list-disc list-inside">
+                        <li>发音准确性：单词发音的标准程度</li>
+                        <li>语速控制：演讲时的速度是否适中</li>
+                        <li>清晰度：语音的清晰可辨程度</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-medium text-secondary mb-2">语音评价指标</h3>
+                    <ul class="space-y-1 text-neutral list-disc list-inside">
+                        <li>语调变化：语音高低起伏的丰富程度</li>
+                        <li>情感表达：语音中传递的情感强度</li>
+                        <li>停顿节奏：演讲中的停顿是否恰当自然</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white/70 py-8 mt-12 border-t border-gray-800">
+        <div class="container mx-auto px-4 text-center">
+            <p class="text-sm md:text-base mb-2">本工具仅供学习和教学使用，未经授权不得用于商业用途。所有分析结果仅供参考。</p>
+            <p class="text-sm md:text-base">Powered by Github, Copyright@PERRY.</p>
+        </div>
+    </footer>
+
+    <script>
+        // 录音相关变量
+        let isRecording = false;
+        let recordingTime = 0;
+        let recordingInterval;
+        let mediaRecorder;
+        let audioChunks = [];
+        
+        // DOM元素
+        const recordBtn = document.getElementById('record-btn');
+        const audioUpload = document.getElementById('audio-upload');
+        const recordStatus = document.getElementById('record-status');
+        const recordTime = document.getElementById('record-time');
+        
+        // 分数相关元素
+        const accuracyBar = document.getElementById('accuracy-bar');
+        const speedBar = document.getElementById('speed-bar');
+        const clarityBar = document.getElementById('clarity-bar');
+        const intonationBar = document.getElementById('intonation-bar');
+        const emotionBar = document.getElementById('emotion-bar');
+        const pauseBar = document.getElementById('pause-bar');
+        
+        const accuracyScore = document.getElementById('accuracy-score');
+        const speedScore = document.getElementById('speed-score');
+        const clarityScore = document.getElementById('clarity-score');
+        const intonationScore = document.getElementById('intonation-score');
+        const emotionScore = document.getElementById('emotion-score');
+        const pauseScore = document.getElementById('pause-score');
+        
+        const detectionScore = document.getElementById('detection-score');
+        const evaluationScore = document.getElementById('evaluation-score');
+        const totalScore = document.getElementById('total-score');
+        const totalComment = document.getElementById('total-comment');
+        const suggestions = document.getElementById('suggestions');
+        
+        // 事件监听
+        recordBtn.addEventListener('click', toggleRecording);
+        audioUpload.addEventListener('change', handleAudioUpload);
+        
+        // 切换录音状态
+        function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+        
+        // 处理音频上传
+        function handleAudioUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // 重置状态
+                resetScores();
+                
+                // 更新UI
+                recordStatus.textContent = `正在分析 "${file.name}"...`;
+                
+                // 模拟音频分析过程
+                setTimeout(() => {
+                    analyzeAudio();
+                    recordStatus.textContent = `已完成 "${file.name}" 的分析`;
+                }, 2000);
+            }
+        }
+        
+        // 开始录音
+        function startRecording() {
+            // 重置文件输入
+            audioUpload.value = '';
+            
+            // 重置状态
+            resetScores();
+            isRecording = true;
+            recordingTime = 0;
+            
+            // 更新UI
+            recordBtn.innerHTML = '<i class="fa fa-stop"></i><span>停止录音</span>';
+            recordBtn.classList.remove('bg-primary');
+            recordBtn.classList.add('bg-red-500');
+            recordStatus.textContent = '正在录音...';
+            
+            // 开始计时
+            recordingInterval = setInterval(updateRecordingTime, 1000);
+            
+            // 模拟获取媒体流
+            simulateMediaRecording();
+        }
+        
+        // 停止录音
+        function stopRecording() {
+            isRecording = false;
+            
+            // 更新UI
+            recordBtn.innerHTML = '<i class="fa fa-microphone"></i><span>开始录音</span>';
+            recordBtn.classList.remove('bg-red-500');
+            recordBtn.classList.add('bg-primary');
+            recordStatus.textContent = '正在分析录音...';
+            
+            // 停止计时
+            clearInterval(recordingInterval);
+            
+            // 模拟停止录音和分析过程
+            setTimeout(analyzeAudio, 1500);
+        }
+        
+        // 分析音频（录音或上传的）
+        function analyzeAudio() {
+            // 生成随机分数（实际应用中应该基于真实分析结果）
+            const accuracy = Math.floor(Math.random() * 4) + 5; // 5-8分
+            const speed = Math.floor(Math.random() * 4) + 5;
+            const clarity = Math.floor(Math.random() * 4) + 5;
+            const intonation = Math.floor(Math.random() * 4) + 5;
+            const emotion = Math.floor(Math.random() * 4) + 5;
+            const pause = Math.floor(Math.random() * 4) + 5;
+            
+            // 计算总分
+            const detectionTotal = Math.round((accuracy + speed + clarity) / 3);
+            const evaluationTotal = Math.round((intonation + emotion + pause) / 3);
+            const overallTotal = detectionTotal + evaluationTotal;
+            
+            // 更新进度条和分数
+            updateScore(accuracyBar, accuracyScore, accuracy);
+            updateScore(speedBar, speedScore, speed);
+            updateScore(clarityBar, clarityScore, clarity);
+            updateScore(intonationBar, intonationScore, intonation);
+            updateScore(emotionBar, emotionScore, emotion);
+            updateScore(pauseBar, pauseScore, pause);
+            
+            // 更新总分
+            detectionScore.textContent = detectionTotal;
+            evaluationScore.textContent = evaluationTotal;
+            totalScore.textContent = overallTotal;
+            
+            // 更新评价和建议
+            updateCommentAndSuggestions(overallTotal, accuracy, speed, clarity, intonation, emotion, pause);
+            
+            // 更新状态
+            recordStatus.textContent = '分析完成，可重新录音或上传音频';
+        }
+        
+        // 更新录音时间显示
+        function updateRecordingTime() {
+            recordingTime++;
+            const minutes = Math.floor(recordingTime / 60).toString().padStart(2, '0');
+            const seconds = (recordingTime % 60).toString().padStart(2, '0');
+            recordTime.textContent = `${minutes}:${seconds}`;
+        }
+        
+        // 重置分数显示
+        function resetScores() {
+            [accuracyBar, speedBar, clarityBar, intonationBar, emotionBar, pauseBar].forEach(bar => {
+                bar.style.width = '0%';
+            });
+            
+            [accuracyScore, speedScore, clarityScore, intonationScore, emotionScore, pauseScore].forEach(score => {
+                score.textContent = '0/10';
+            });
+            
+            detectionScore.textContent = '0';
+            evaluationScore.textContent = '0';
+            totalScore.textContent = '0';
+            totalComment.textContent = '正在分析语音...';
+            suggestions.innerHTML = '<p class="italic text-neutral/70">分析中，请稍候...</p>';
+        }
+        
+        // 模拟媒体录制
+        function simulateMediaRecording() {
+            // 实际应用中应该使用真正的MediaRecorder API
+        }
+        
+        // 更新单个指标的分数和进度条
+        function updateScore(barElement, scoreElement, score) {
+            barElement.style.width = `${score * 10}%`;
+            scoreElement.textContent = `${score}/10`;
+        }
+        
+        // 更新总体评价和建议
+        function updateCommentAndSuggestions(total, accuracy, speed, clarity, intonation, emotion, pause) {
+            // 总体评价
+            let comment = '';
+            if (total >= 18) {
+                comment = '优秀！您的英语演讲语音表现非常出色，继续保持！';
+            } else if (total >= 15) {
+                comment = '良好。您的英语演讲有很好的基础，稍加改进即可更上一层楼。';
+            } else if (total >= 12) {
+                comment = '一般。您的英语演讲有一定基础，但还有较大提升空间。';
+            } else {
+                comment = '需要努力。建议多练习英语发音和表达，逐步提高演讲水平。';
+            }
+            totalComment.textContent = comment;
+            
+            // 生成建议
+            let suggestionText = '<ul class="space-y-2">';
+            
+            // 根据各项分数生成针对性建议
+            if (accuracy < 7) {
+                suggestionText += '<li><span class="font-medium text-primary">发音方面：</span>建议多听标准发音，注意单词重音和音节划分，可以尝试跟读练习。</li>';
+            }
+            
+            if (speed < 7) {
+                suggestionText += '<li><span class="font-medium text-primary">语速方面：</span>演讲时注意控制速度，重要内容适当放慢，避免过快导致听众难以跟上。</li>';
+            }
+            
+            if (clarity < 7) {
+                suggestionText += '<li><span class="font-medium text-primary">清晰度方面：</span>注意每个单词的发音完整，避免吞音，适当提高音量和发音力度。</li>';
+            }
+            
+            if (intonation < 7) {
+                suggestionText += '<li><span class="font-medium text-secondary">语调方面：</span>尝试增加语调变化，陈述句、疑问句使用不同语调，使演讲更生动。</li>';
+            }
+            
+            if (emotion < 7) {
+                suggestionText += '<li><span class="font-medium text-secondary">情感方面：</span>根据演讲内容融入适当情感，通过语气变化传递情绪，增强感染力。</li>';
+            }
+            
+            if (pause < 7) {
+                suggestionText += '<li><span class="font-medium text-secondary">停顿方面：</span>在重点内容前后适当停顿，给听众思考时间，使演讲节奏更合理。</li>';
+            }
+            
+            // 如果所有指标都不错
+            if (suggestionText === '<ul class="space-y-2">') {
+                suggestionText += '<li>您的演讲表现优秀！继续保持现有优势，可尝试增加演讲的个人风格和独特性。</li>';
+            }
+            
+            suggestionText += '</ul>';
+            suggestions.innerHTML = suggestionText;
+        }
+    </script>
+
+
+</body></html>
